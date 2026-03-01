@@ -108,7 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func statusBarButtonClicked(_ sender: NSStatusBarButton) {
-        let event = NSApp.currentEvent!
+        guard let event = NSApp.currentEvent else { return }
         
         if event.type == .rightMouseUp {
             // Right click - show menu
@@ -185,7 +185,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if isFocusMode {
             // Focus time finished - show popup and start break
-            showNotification(title: "Focus Complete!", message: "Great job! Time for a 5-minute break.")
+            showNotification(title: "Focus Complete!", message: "Great job! Time for a \(breakDuration / 60)-minute break.")
             isFocusMode = false
             remainingSeconds = breakDuration
             
@@ -195,7 +195,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } else {
             // Break finished - show popup and restart focus
-            showNotification(title: "Break Complete!", message: "Break's over! Starting a new 25-minute focus session.")
+            showNotification(title: "Break Complete!", message: "Break's over! Starting a new \(focusDuration / 60)-minute focus session.")
             isFocusMode = true
             remainingSeconds = focusDuration
             
