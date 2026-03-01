@@ -37,7 +37,7 @@ cp -r build/Pomodori.app /Applications/
 
 ## How It Was Made
 
-This entire app was created through conversation. The user described what they wanted, and the AI assistant (powered by Claude via opencode) wrote the code, debugged it, and refined it based on feedback.
+This entire app was created through conversation. The user described what they wanted, and the AI assistant (powered by Kimi K2.5 via opencode) wrote the code, debugged it, and refined it based on feedback.
 
 **Key technologies used:**
 - Swift
