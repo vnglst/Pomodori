@@ -8,9 +8,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var isFocusMode: Bool = true  // true = focus, false = break
     var isRunning: Bool = false
     
-    // Timer durations
-    let focusDuration = 25 * 60  // 25 minutes
+    // Timer durations - focus is variable, break is fixed
+    var focusDuration = 25 * 60  // Default 25 minutes, can be changed
     let breakDuration = 5 * 60   // 5 minutes
+    let focusDurations = [25, 35, 45, 60]  // Available focus duration options
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Initialize timer
@@ -73,6 +74,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        // Focus Duration submenu
+        let durationMenu = NSMenu()
+        for minutes in focusDurations {
+            let durationItem = NSMenuItem(
+                title: "\(minutes) minutes",
+                action: #selector(setFocusDuration(_:)),
+                keyEquivalent: ""
+            )
+            durationItem.target = self
+            durationItem.tag = minutes
+            if minutes == focusDuration / 60 {
+                durationItem.state = NSControl.StateValue.on
+            }
+            durationMenu.addItem(durationItem)
+        }
+        let durationMenuItem = NSMenuItem(title: "Focus Duration", action: nil, keyEquivalent: "")
+        durationMenuItem.submenu = durationMenu
+        menu.addItem(durationMenuItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         // Quit item
         let quitItem = NSMenuItem(
             title: "Quit",
@@ -132,6 +154,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         remainingSeconds = focusDuration
         updateDisplay()
         print("Timer reset")
+    }
+    
+    @objc func setFocusDuration(_ sender: NSMenuItem) {
+        let minutes = sender.tag
+        focusDuration = minutes * 60
+        
+        // If timer is not running, update remaining time immediately
+        if !isRunning && isFocusMode {
+            remainingSeconds = focusDuration
+            updateDisplay()
+        }
+        
+        setupMenu()
+        print("Focus duration set to \(minutes) minutes")
     }
     
     func tick() {
