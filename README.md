@@ -24,6 +24,14 @@ This project demonstrates how **personal software** can be created in the age of
 
 ## Build & Run
 
+Install the latest published release with Homebrew:
+
+```bash
+brew install --cask vnglst/tap/pomodori
+```
+
+Requires macOS 12 Monterey or later. Requires an Apple Silicon Mac.
+
 ```bash
 # Build
 ./build.sh
@@ -59,3 +67,9 @@ In an era of bloated software, app stores, and endless subscriptions, this repre
 ## License
 
 This is personal software. Use it, modify it, make it yours.
+
+## Publishing releases
+
+Push a `vMAJOR.MINOR.PATCH` tag from `main` to build and publish a release.
+Configure the `HOMEBREW_TAP_TOKEN` Actions secret with Contents write access to
+`vnglst/homebrew-tap` so the workflow can update the Homebrew cask.

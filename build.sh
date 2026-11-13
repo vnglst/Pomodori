@@ -25,10 +25,8 @@ rm -rf "$ICONSET_DIR"
 
 # Compile the Swift code
 echo "Compiling app..."
-swiftc \
-    -o "$MACOS_DIR/$APP_NAME" \
-    -framework Cocoa \
-    Pomodori/main.swift
+swiftc -O -target arm64-apple-macosx12.0 -framework Cocoa \
+    -o "$MACOS_DIR/$APP_NAME" Pomodori/main.swift
 
 # Copy menu bar icons
 cp Pomodori/tomato_menubar.png "$RESOURCES_DIR/" 2>/dev/null || true
@@ -36,6 +34,11 @@ cp Pomodori/tomato_menubar@2x.png "$RESOURCES_DIR/" 2>/dev/null || true
 
 # Copy Info.plist
 cp Pomodori/Info.plist "$CONTENTS_DIR/"
+if [[ -n "${VERSION:-}" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS_DIR/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$CONTENTS_DIR/Info.plist"
+fi
+codesign --force --sign - "$BUILD_DIR/$APP_NAME.app"
 
 echo ""
 echo "✓ Build complete!"
