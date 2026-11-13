@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate tag
+        id: release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF_NAME" == "v$VERSION" && "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Build and archive app
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          ./build.sh
+          ditto -c -k --sequesterRsrc --keepParent build/Pomodori.app "Pomodori-$VERSION.zip"
+          echo "SHA256=$(shasum -a 256 "Pomodori-$VERSION.zip" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "Pomodori-$VERSION.zip" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "Pomodori-$VERSION.zip" --title "Pomodori $VERSION" --generate-notes
+          fi
+      - name: Update Homebrew cask
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          path = pathlib.Path("Casks/pomodori.rb")
+          text = path.read_text()
+          text = re.sub(r'version "[^"]+"', f'version "{os.environ["VERSION"]}"', text, count=1)
+          text = re.sub(r'sha256 (?:\"[^\"]+\"|:no_check)', f'sha256 "{os.environ["SHA256"]}"', text, count=1)
+          path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/pomodori.rb
+          git diff --cached --quiet || git commit -m "chore(release): update Homebrew cask to $VERSION"
+          git push origin HEAD:main
+      - name: Publish to Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          test -n "$GH_TOKEN" || { echo "Set HOMEBREW_TAP_TOKEN with write access to vnglst/homebrew-tap" >&2; exit 1; }
+          git clone "https://x-access-token:$GH_TOKEN@github.com/vnglst/homebrew-tap.git" "$RUNNER_TEMP/homebrew-tap"
+          mkdir -p "$RUNNER_TEMP/homebrew-tap/Casks"
+          cp Casks/pomodori.rb "$RUNNER_TEMP/homebrew-tap/Casks/pomodori.rb"
+          git -C "$RUNNER_TEMP/homebrew-tap" config user.name "github-actions[bot]"
+          git -C "$RUNNER_TEMP/homebrew-tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$RUNNER_TEMP/homebrew-tap" add Casks/pomodori.rb
+          git -C "$RUNNER_TEMP/homebrew-tap" diff --cached --quiet || git -C "$RUNNER_TEMP/homebrew-tap" commit -m "chore(release): update Pomodori cask to $VERSION"
+          git -C "$RUNNER_TEMP/homebrew-tap" push
